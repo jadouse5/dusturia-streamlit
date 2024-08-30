@@ -1,4 +1,4 @@
-from dotenv import load_dotenv
+import os
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
@@ -7,6 +7,8 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 import streamlit as st
+
+openai_api_key = os.getenv("OPENAI_API_KEY")
 
 def init_database(user: str, password: str, host: str, port: str, database: str) -> SQLDatabase:
   db_uri = f"mysql+mysqlconnector://{user}:{password}@{host}:{port}/{database}"
@@ -89,7 +91,6 @@ if "chat_history" not in st.session_state:
       AIMessage(content="Hello! I'm a SQL assistant. Ask me anything about your database."),
     ]
 
-load_dotenv()
 
 st.set_page_config(page_title="Chat with MySQL", page_icon=":speech_balloon:")
 
