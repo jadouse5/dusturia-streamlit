@@ -1,4 +1,5 @@
 import os
+import streamlit as st
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
@@ -6,7 +7,6 @@ from langchain_community.utilities import SQLDatabase
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
-import streamlit as st
 
 # Retrieve API keys from environment variables
 openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -44,12 +44,17 @@ def get_sql_chain(db):
     """
     
     prompt = ChatPromptTemplate.from_template(template)
-    
-    # Choose between ChatGroq and ChatOpenAI based on availability of the API key
+
+    # Debugging: Check if API keys are correctly retrieved
     if groq_api_key:
+        st.write("Using ChatGroq with API Key")
         llm = ChatGroq(model="mixtral-8x7b-32768", temperature=0, groq_api_key=groq_api_key)
-    else:
+    elif openai_api_key:
+        st.write("Using ChatOpenAI with API Key")
         llm = ChatOpenAI(model="gpt-4", temperature=0, openai_api_key=openai_api_key)
+    else:
+        st.error("API key for Groq or OpenAI is missing!")
+        return None
     
     def get_schema(_):
         return db.get_table_info()
@@ -63,6 +68,8 @@ def get_sql_chain(db):
     
 def get_response(user_query: str, db: SQLDatabase, chat_history: list):
     sql_chain = get_sql_chain(db)
+    if not sql_chain:
+        return "Unable to process request due to missing API key."
     
     template = """
     You are a legal analyst specializing in the Moroccan Constitutional Court's decisions. You are interacting with a user who is asking you questions about the court's database.
@@ -79,8 +86,10 @@ def get_response(user_query: str, db: SQLDatabase, chat_history: list):
     # Use the selected LLM (either ChatGroq or ChatOpenAI)
     if groq_api_key:
         llm = ChatGroq(model="mixtral-8x7b-32768", temperature=0, groq_api_key=groq_api_key)
-    else:
+    elif openai_api_key:
         llm = ChatOpenAI(model="gpt-4", temperature=0, openai_api_key=openai_api_key)
+    else:
+        return "API key is missing."
     
     chain = (
         RunnablePassthrough.assign(query=sql_chain).assign(
